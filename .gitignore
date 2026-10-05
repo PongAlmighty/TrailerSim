@@ -4,6 +4,7 @@ handoff.md
 
 # Machine-specific settings (host address the container binds to)
 .env
+docker-compose.override.yml
 
 # OS / editor noise
 .DS_Store
