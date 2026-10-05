@@ -1,0 +1,12 @@
+# Local tooling and session notes
+.claude/
+handoff.md
+
+# Machine-specific settings (host address the container binds to)
+.env
+
+# OS / editor noise
+.DS_Store
+*.swp
+.vscode/
+.idea/

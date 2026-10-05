@@ -1,0 +1,11 @@
+services:
+  trailersim:
+    build: .
+    image: trailersim
+    container_name: trailersim
+    restart: unless-stopped
+    ports:
+      # Published only on the host address in BIND_IP, so the app is reachable from the
+      # network that address belongs to and not from every interface. Defaults to this
+      # machine only. Example:  BIND_IP=<this machine's LAN address> docker compose up -d --build
+      - "${BIND_IP:-127.0.0.1}:${PORT:-8080}:80"

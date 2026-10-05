@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrailerSim: trailer weight &amp; balance</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>TrailerSim</h1>
+  <p id="headline" class="headline"></p>
+  <div class="seg" role="group" aria-label="Units">
+    <button id="u-imp" class="on">lb / in</button><button id="u-met">kg / mm</button>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="view"><span class="tag">Top view</span><canvas id="top"></canvas></div>
+    <div class="view"><span class="tag">Side view · drag cargo to move it</span><canvas id="side"></canvas></div>
+
+    <div class="drive">
+      <div id="speed-ctl" class="speed"></div>
+      <div class="lane">
+        <button id="lane-l" title="Arrow up">▲ Left lane</button>
+        <button id="lane-r" title="Arrow down">▼ Right lane</button>
+        <button id="gust" title="Hit the trailer with a crosswind gust">Gust</button>
+        <button id="pause">Pause</button>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi wide">
+        <div class="k-label"><span id="tw-name">Tongue weight</span><b id="tw-val"></b></div>
+        <div class="gauge"><div id="tw-band" class="band"></div><div id="tw-mark" class="mark"></div></div>
+        <div class="k-scale"><span>0%</span><span id="tw-target"></span><span>30%</span></div>
+      </div>
+      <div class="kpi"><div class="k-label">Trailer gross</div><b id="k-wt"></b></div>
+      <div class="kpi"><div class="k-label">Vehicle gross</div><b id="k-gvw"></b></div>
+      <div class="kpi"><div class="k-label">Combined</div><b id="k-gcw"></b></div>
+      <div class="kpi"><div class="k-label">Sway onset (est.)</div><b id="k-sway"></b></div>
+    </div>
+  </section>
+
+  <section class="panels">
+    <div class="card">
+      <h2>Tow vehicle</h2>
+      <div id="veh"></div>
+    </div>
+    <div class="card">
+      <h2>Trailer</h2>
+      <div id="trl"></div>
+    </div>
+    <div class="card">
+      <h2>Trailer cargo</h2>
+      <div id="cargo"></div>
+    </div>
+    <div class="card">
+      <h2>Checks</h2>
+      <ul id="issues" class="issues"></ul>
+      <div id="checks"></div>
+    </div>
+    <div class="card">
+      <h2>The math</h2>
+      <div id="math" class="math"></div>
+    </div>
+    <div class="card">
+      <h2>Axle-scale worksheet</h2>
+      <p class="hint">Weigh each axle, measure its distance from the reference datum line (RDL), and the centre of balance is Σ(D × W) ÷ gross weight. Any consistent units work.</p>
+      <div id="sheet"></div>
+    </div>
+    <p class="fine">Method from the Engineers Edge <a href="https://www.engineersedge.com/calculators/trailer-weight-balance.htm" target="_blank" rel="noopener">trailer weight and balance</a> page. Vehicle and trailer presets are representative figures for each class, not manufacturer specifications: use the ratings on your door-jamb sticker and trailer VIN plate. The sway animation and onset speed are an illustration of the trend, not a prediction. Suspension squat is drawn 2.5× for visibility.</p>
+  </section>
+</main>
+
+<script src="calc.js"></script>
+<script src="sim.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
