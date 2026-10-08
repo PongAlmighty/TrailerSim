@@ -41,6 +41,11 @@ const TRAILERS = [
   // tongue length, axle position and outside dimensions are estimates (cgPct chosen to reproduce the 87 lb tongue weight).
   { id: 'diamond46', name: 'Diamond Cargo 4×6 enclosed', coupler: 'ball', style: 'box', empty: 700, bed: 72, tongue: 48, axles: 1, axlePct: 0.60, cgPct: 0.4425, width: 54, deckH: 16, boxH: 52, tire: 24,
     gvwr: 2000, gawr: 2000, cargo: [{ name: 'Boxes', w: 400, pos: 0.45 }] },
+  // Empty weight, payload, 600 lb axle, 11 lb tongue weight, 46×28×18 in box, 82 in overall length and 5.30-12 tires from
+  // theusatrailerstore.com's Lumina Diamond spec list; the page gives no GVWR (170 + 500 lb payload is used), so tongue length
+  // and axle position are estimates (cgPct chosen to reproduce the 11 lb tongue weight).
+  { id: 'lumina', name: 'Lumina Diamond motorcycle trailer', coupler: 'ball', style: 'box', empty: 170, bed: 46, tongue: 30, axles: 1, axlePct: 0.50, cgPct: 0.4254, width: 47, deckH: 12, boxH: 18, tire: 18,
+    gvwr: 670, gawr: 600, cargo: [{ name: 'Gear', w: 200, pos: 0.45 }] },
   { id: 'cargo14', name: 'Enclosed cargo 7×14', coupler: 'ball', style: 'box', empty: 2400, bed: 168, tongue: 48, axles: 2, axlePct: 0.60, cgPct: 0.48, width: 84, deckH: 20, boxH: 80, tire: 27,
     gvwr: 7000, gawr: 7000, cargo: [{ name: 'Tool chests', w: 1200, pos: 0.35 }, { name: 'Motorcycle', w: 600, pos: 0.62 }] },
   { id: 'travel', name: 'Travel trailer 24 ft', coupler: 'ball', style: 'camper', empty: 4900, bed: 270, tongue: 44, axles: 2, axlePct: 0.57, cgPct: 0.48, width: 96, deckH: 24, boxH: 96, tire: 28,

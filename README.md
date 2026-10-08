@@ -25,8 +25,8 @@ The three calculation examples from the page are built into the worksheet at the
 - **Checks against ratings.** Tongue weight target band (10–15% for ball hitches, 15–25% for gooseneck and
   fifth-wheel), tow rating, hitch tongue rating, GVWR and payload, each axle's GAWR, GCWR, trailer GVWR and
   trailer axle rating, plus warnings for front axle unloading and for when a weight distribution hitch is normally required.
-- **Vehicles and trailers.** Presets from a mid-size sedan to a one-ton dually, and trailers from a 4×6
-  Diamond Cargo box to a fifth-wheel camper, or no trailer at all to see the vehicle on its own. Every spec is editable.
+- **Vehicles and trailers.** Presets from a mid-size sedan to a one-ton dually, and trailers from a Lumina
+  Diamond motorcycle trailer and a 4×6 Diamond Cargo box to a fifth-wheel camper, or no trailer at all to see the vehicle on its own. Every spec is editable.
 - **Hitch types.** Receiver (bumper pull), weight distribution, pintle, gooseneck and fifth-wheel. The weight
   distribution hitch has a slider for how much front axle load it restores.
 - **Cargo where you want it.** Occupants, cargo and (on pickups) a bed topper in the vehicle; any number of named cargo items in the trailer,
