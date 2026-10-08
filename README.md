@@ -29,7 +29,7 @@ The three calculation examples from the page are built into the worksheet at the
   Diamond Cargo box to a fifth-wheel camper, or no trailer at all to see the vehicle on its own. Every spec is editable.
 - **Hitch types.** Receiver (bumper pull), weight distribution, pintle, gooseneck and fifth-wheel. The weight
   distribution hitch has a slider for how much front axle load it restores.
-- **Cargo where you want it.** Occupants and cargo in the vehicle; any number of named cargo items in the trailer,
+- **Cargo where you want it.** Occupants, cargo and (on pickups) a bed topper in the vehicle; any number of named cargo items in the trailer,
   each with a weight and a position. Drag the boxes in the side view to move them.
 - **Driving animation.** Top and side views of the rig on an endless road. Set the speed, change lanes, hit
   the trailer with a crosswind gust, and see suspension squat, axle loads and the centre-of-balance markers update.
@@ -71,6 +71,7 @@ To publish on more than one address, add a service per address in a `docker-comp
 | Speed | Slider, or ← / → keys |
 | Change lane | ▲ Left lane / ▼ Right lane buttons, or ↑ / ↓ keys |
 | Crosswind gust | Gust button |
+| Zoom the side view to the tow vehicle | Zoom to vehicle button, top right of the side view |
 | Move trailer or vehicle cargo | Drag the box in the side view, or use its position slider |
 | Units | lb / in or kg / mm toggle in the header |
 

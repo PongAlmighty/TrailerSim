@@ -4,7 +4,7 @@
 const $ = id => document.getElementById(id);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
-const S = { units: 'imp', speed: 55, hitch: 'receiver', wdRestore: 0.75, veh: null, trl: null, cargo: [], load: { front: 180, rear: 0, cargo: 100, cargoPos: 0.5 } };
+const S = { units: 'imp', speed: 55, hitch: 'receiver', wdRestore: 0.75, veh: null, trl: null, cargo: [], load: { front: 180, rear: 0, cargo: 100, cargoPos: 0.5, topper: 0 } };
 let R = null;
 
 const UNIT = {
@@ -56,6 +56,10 @@ function buildVehicle() {
   c(g, L, 'rear', 'Rear passengers', 'lb', 0, 900, 10);
   c(g, L, 'cargo', v.body === 'pickup' ? 'Bed cargo' : 'Cargo', 'lb', 0, Math.max(1000, v.gvwr - v.curb), 10);
   c(g, L, 'cargoPos', 'Cargo position (front → rear)', 'pct', 0, 1, 0.01);
+  if (v.body === 'pickup') {
+    box.append(el('h3', null, 'Truck topper'));
+    c(box, L, 'topper', 'Topper weight (0 = none)', 'lb', 0, 500, 5);
+  }
   const d = el('details'), dg = el('div', 'grid2'); d.append(el('summary', null, 'Vehicle specs and ratings'), dg); box.append(d);
   c(dg, v, 'ff', 'Curb weight on front axle', 'pct', 0.4, 0.7, 0.01);
   c(dg, v, 'wb', 'Wheelbase', 'in', 90, 200, 1);
@@ -237,6 +241,7 @@ const lane = n => { setLane(n); $('lane-l').classList.toggle('on', n === 1); $('
 $('lane-l').addEventListener('click', () => lane(1));
 $('lane-r').addEventListener('click', () => lane(0));
 $('gust').addEventListener('click', gust);
+$('zoom').addEventListener('click', () => { sim.zoom = !sim.zoom; $('zoom').setAttribute('aria-pressed', sim.zoom); $('zoom').textContent = sim.zoom ? 'Show whole rig' : 'Zoom to vehicle'; });
 $('pause').addEventListener('click', () => { sim.paused = !sim.paused; $('pause').textContent = sim.paused ? 'Resume' : 'Pause'; });
 addEventListener('keydown', e => {
   if (/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;

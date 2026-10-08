@@ -23,6 +23,8 @@ main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, 1fr
 .view { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
 .view canvas { display: block; width: 100%; touch-action: none; }
 #top { height: 250px; } #side { height: 270px; }
+.view-btn { position: absolute; right: 8px; top: 6px; padding: 2px 9px; border-radius: 9px; background: rgba(18, 22, 28, .7); color: #fff; font-size: 11px; }
+.view-btn[aria-pressed=true] { background: var(--accent); color: #1a1405; border-color: var(--accent); font-weight: 600; }
 .tag { position: absolute; left: 8px; top: 6px; padding: 1px 7px; border-radius: 9px; background: rgba(18, 22, 28, .7); color: #fff; font-size: 11px; pointer-events: none; }
 
 button, select, input[type=number], input[type=text] { font: inherit; color: var(--text); background: #232b36; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; }

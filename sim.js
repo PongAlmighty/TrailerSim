@@ -6,6 +6,7 @@ const LANE = 144, SQUAT_GAIN = 1, MPH = 17.6; // lane width (in); squat drawn to
 const sim = {
   y: -LANE / 2, vy: 0, ay: 0, yFrom: -LANE / 2, yTo: -LANE / 2, tau: 1, lane: 0,
   psi: 0, phi: 0, sig: 0, sigd: 0, env: 0, dist: 0, v: 55, paused: false, sc: 1, hitchX: 0, hits: [],
+  zoom: false, sideSc: 1, sideX: 0, // side view framing; zoom fills it with the tow vehicle
 };
 
 function setLane(n) {
@@ -58,6 +59,15 @@ function layout(W, Htop) {
   const front = R.OH + v.wb + v.fOH, back = t ? t.tongue + t.bed : v.rOH - R.OH;
   sim.sc = Math.min(W * 0.86 / (front + back), Htop / (2 * LANE + 56));
   sim.hitchX = W / 2 + (back - front) / 2 * sim.sc;
+}
+
+// side view: the same framing as the top view, or zoomed to fit the tow vehicle
+function sideLayout(W, gY) {
+  sim.sideSc = sim.sc; sim.sideX = sim.hitchX;
+  if (!sim.zoom) return;
+  const v = S.veh, len = v.fOH + v.wb + v.rOH, mid = R.OH + (v.wb + v.fOH - v.rOH) / 2; // bumper to bumper, centre ahead of the hitch
+  sim.sideSc = Math.min(W * 0.8 / len, (gY - 50) / (v.height + 14));
+  sim.sideX = W / 2 - mid * sim.sideSc;
 }
 
 function carShape(v) {
@@ -125,7 +135,10 @@ function topCar(c, v) {
   trap(sh.cowl + 3, sh.rs, 4, 8);
   if (v.body === 'pickup') {
     trap(sh.re + 2, sh.rg, 8, 6);
-    c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(X(sh.end) + 3, -bw + 5, sh.end - v.bedStart - 6, 2 * bw - 10);
+    if (S.load.topper > 0) { // topper roof over the bed
+      c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(X(sh.end) + 3, -bw + 5, sh.end - v.bedStart - 4, 2 * bw - 10);
+      c.fillStyle = 'rgba(15,22,32,.82)'; c.fillRect(X(sh.end) + 3, -bw + 9, 4, 2 * bw - 18);
+    } else { c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(X(sh.end) + 3, -bw + 5, sh.end - v.bedStart - 6, 2 * bw - 10); }
   } else trap(sh.re, sh.rg - 2, 8, 5);
   c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(X(sh.re), -bw + 7, sh.re - sh.rs, 2 * bw - 14); // roof highlight
   c.fillStyle = v.color; c.fillRect(X(sh.rs) - 6, -bw - 5, 5, 5); c.fillRect(X(sh.rs) - 6, bw, 5, 5); // mirrors
@@ -133,13 +146,17 @@ function topCar(c, v) {
   if (S.load.cargo > 0) {
     const u = v.cargoMin + S.load.cargoPos * (v.cargoMax - v.cargoMin), [len] = cargoSize({ w: S.load.cargo }, 80);
     const l = Math.min(len, 40);
-    cargoBox(c, X(u) - l / 2, -l * 0.45, l, l * 0.9, v.body !== 'pickup');
+    cargoBox(c, X(u) - l / 2, -l * 0.45, l, l * 0.9, v.body !== 'pickup' || S.load.topper > 0, S.load.cargo);
   }
 }
 
-function cargoBox(c, x, y, w, h, xray) {
-  c.fillStyle = xray ? 'rgba(245,184,61,.35)' : '#c98a2b';
-  c.strokeStyle = xray ? '#f5b83d' : '#6e4a12'; c.lineWidth = 1.5;
+// heavier cargo is drawn redder: amber at 0 lb, red from HEAVY lb up
+const HEAVY = 2000;
+const mix = (a, b, k) => a.map((x, i) => Math.round(x + (b[i] - x) * k)).join(',');
+function cargoBox(c, x, y, w, h, xray, lb) {
+  const k = Math.sqrt(clamp(lb / HEAVY, 0, 1));
+  c.fillStyle = xray ? 'rgba(' + mix([245, 184, 61], [242, 72, 72], k) + ',.35)' : 'rgb(' + mix([201, 138, 43], [196, 48, 43], k) + ')';
+  c.strokeStyle = xray ? 'rgb(' + mix([245, 184, 61], [242, 72, 72], k) + ')' : 'rgb(' + mix([110, 74, 18], [104, 18, 16], k) + ')'; c.lineWidth = 1.5;
   c.setLineDash(xray ? [5, 4] : []);
   c.beginPath(); c.rect(x, y, w, h); c.fill(); c.stroke(); c.setLineDash([]);
 }
@@ -169,7 +186,7 @@ function topTrailer(c, t) {
   if (t.coupler === 'gooseneck') { c.fillStyle = '#2b2f35'; c.fillRect(x0, -8, t.tongue + 6, 16); }
   S.cargo.forEach(k => {
     const [len] = cargoSize(k, L), w = Math.min(len * 0.6, hw * 1.5);
-    cargoBox(c, x0 - k.pos * L - len / 2, -w / 2, len, w, !open);
+    cargoBox(c, x0 - k.pos * L - len / 2, -w / 2, len, w, !open, k.w);
   });
   // centre of balance marker
   cgMark(c, -R.cb, 0, 7);
@@ -184,7 +201,8 @@ function cgMark(c, x, y, r) {
 // ---------- side view ----------
 function drawSide(cv) {
   const [c, W, H] = fit(cv);
-  const sc = sim.sc, v = S.veh, t = S.trl, gY = H - 64, hX = sim.hitchX;
+  const gY = H - 64; sideLayout(W, gY);
+  const sc = sim.sideSc, v = S.veh, t = S.trl, hX = sim.sideX;
   const sx = x => hX + x * sc, sy = z => gY - z * sc;
   sim.hits = [];
 
@@ -231,7 +249,7 @@ function drawSide(cv) {
   // coupler load callout
   c.font = '600 11px system-ui'; c.textAlign = 'center';
   if (t) {
-    const col = STATUS[R.tongueStatus], hx = sx(0), topY = 34;
+    const col = STATUS[R.tongueStatus], hx = sx(0), topY = 44;
     c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.5;
     const tipY = sy(hitchZ) - 6;
     c.beginPath(); c.moveTo(hx, topY + 4); c.lineTo(hx, tipY); c.stroke();
@@ -253,7 +271,7 @@ function drawSide(cv) {
   };
   axle(clamp(sx(xFA), 40, W - 40), 'Front axle', R.F, v.gawrF);
   axle(sx(R.OH), 'Rear axle', R.R, v.gawrR);
-  if (t) axle(clamp(sx(-R.A), 40, W - 40), t.axles > 1 ? 'Trailer axles' : 'Trailer axle', R.tAxle, t.gawr);
+  if (t && (!sim.zoom || sx(-R.A) > 0)) axle(clamp(sx(-R.A), 40, W - 40), t.axles > 1 ? 'Trailer axles' : 'Trailer axle', R.tAxle, t.gawr);
 }
 
 function wheelSide(c, x, y, r, ang) {
@@ -278,6 +296,14 @@ function sideCar(c, v, cx, cz, sx, sy, sc, xFA, spin) {
   const pillar = u => { c.beginPath(); c.moveTo(cx(u), cz(u, sh.zb)); c.lineTo(cx(u), cz(u, sh.h - 2)); c.stroke(); };
   pillar((sh.rs + (pk ? sh.rg : sh.re)) / 2 + 4);
   if (v.body === 'suv' || v.body === 'van') pillar(sh.re - 26);
+  const cap = pk && S.load.topper > 0;
+  if (cap) { // cab-high topper over the bed
+    c.fillStyle = v.color; c.beginPath();
+    c.moveTo(cx(sh.rg + 1), cz(sh.rg + 1, sh.deck)); P(sh.rg + 1, sh.h - 2); P(sh.end - 4, sh.h - 4); P(sh.end, sh.h - 9); P(sh.end, sh.deck); c.fill();
+    c.fillStyle = 'rgba(15,22,32,.82)'; c.beginPath();
+    c.moveTo(cx(sh.rg + 8), cz(sh.rg + 8, sh.deck + 4)); P(sh.rg + 8, sh.h - 6); P(sh.end - 10, sh.h - 7); P(sh.end - 10, sh.deck + 4); c.fill();
+    c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1; c.beginPath(); c.moveTo(cx(sh.rg + 1), cz(sh.rg + 1, sh.deck)); P(sh.rg + 1, sh.h - 2); c.stroke();
+  }
   // occupants
   c.fillStyle = '#e6c9a8';
   const head = u => { c.beginPath(); c.arc(cx(u), cz(u, sh.zb + 9), 5 * sc, 0, 7); c.fill(); };
@@ -288,7 +314,7 @@ function sideCar(c, v, cx, cz, sx, sy, sc, xFA, spin) {
     const u = v.cargoMin + S.load.cargoPos * (v.cargoMax - v.cargoMin), [len, h] = cargoSize({ w: S.load.cargo }, 80);
     const l = Math.min(len, 40), hh = Math.min(h, 24), base = sh.z0 + (pk ? 22 : 14);
     const x = cx(u + l / 2), y = cz(u, base + hh);
-    cargoBox(c, x, y, l * sc, hh * sc, !pk);
+    cargoBox(c, x, y, l * sc, hh * sc, !pk || cap, S.load.cargo);
     sim.hits.push({ x, y, w: l * sc, h: hh * sc, kind: 'veh' });
   }
   // wheels
@@ -340,7 +366,7 @@ function sideTrailer(c, t, tx, tz, sy, sc, spin) {
     const s = t.tongue + k.pos * t.bed, [len, h] = cargoSize(k, t.bed);
     const base = st === 'fifth' && s < 100 ? 68 : t.deckH;
     const x = tx(s + len / 2), y = tz(s, base + h);
-    cargoBox(c, x, y, len * sc, h * sc, !open);
+    cargoBox(c, x, y, len * sc, h * sc, !open, k.w);
     if (len * sc > 44) { c.fillStyle = open ? '#1a1405' : '#5b4410'; c.font = '600 10px system-ui'; c.textAlign = 'center'; c.fillText(fW(k.w), x + len * sc / 2, y + h * sc / 2 + 4); }
     sim.hits.push({ x, y, w: len * sc, h: h * sc, kind: 'trl', i });
   });
@@ -376,7 +402,7 @@ function startSim(top, side) {
     const [x, y] = pos(e);
     if (!drag) { side.style.cursor = hit(x, y) ? 'grab' : 'default'; return; }
     side.style.cursor = 'grabbing';
-    const world = (sim.hitchX - (x - drag.off)) / sim.sc; // inches behind the hitch
+    const world = (sim.sideX - (x - drag.off)) / sim.sideSc; // inches behind the hitch
     if (drag.h.kind === 'trl') S.cargo[drag.h.i].pos = clamp((world - S.trl.tongue) / S.trl.bed, 0.03, 0.97);
     else { const v = S.veh, u = world + R.OH + v.wb; S.load.cargoPos = clamp((u - v.cargoMin) / (v.cargoMax - v.cargoMin), 0, 1); }
     update(true);

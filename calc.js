@@ -96,6 +96,7 @@ function compute(S) {
     { name: 'Rear passengers', w: S.load.rear, d: v.seatR },
     { name: 'Cargo', w: S.load.cargo, d: v.cargoMin + S.load.cargoPos * (v.cargoMax - v.cargoMin) },
   ];
+  if (v.body === 'pickup') vItems.push({ name: 'Topper', w: S.load.topper, d: (v.bedStart + v.wb + v.rOH) / 2 }); // centred over the bed
   const Wv = vItems.reduce((s, i) => s + i.w, 0);
   const R0 = vItems.reduce((s, i) => s + i.w * i.d, 0) / v.wb;
   const F0 = Wv - R0;
