@@ -26,7 +26,7 @@ The three calculation examples from the page are built into the worksheet at the
   fifth-wheel), tow rating, hitch tongue rating, GVWR and payload, each axle's GAWR, GCWR, trailer GVWR and
   trailer axle rating, plus warnings for front axle unloading and for when a weight distribution hitch is normally required.
 - **Vehicles and trailers.** Presets from a mid-size sedan to a one-ton dually, and trailers from a 4×6
-  Diamond Cargo box to a fifth-wheel camper. Every spec is editable.
+  Diamond Cargo box to a fifth-wheel camper, or no trailer at all to see the vehicle on its own. Every spec is editable.
 - **Hitch types.** Receiver (bumper pull), weight distribution, pintle, gooseneck and fifth-wheel. The weight
   distribution hitch has a slider for how much front axle load it restores.
 - **Cargo where you want it.** Occupants and cargo in the vehicle; any number of named cargo items in the trailer,
@@ -90,5 +90,4 @@ To publish on more than one address, add a service per address in a `docker-comp
   Use the ratings on your vehicle's door-jamb sticker, hitch label and trailer VIN plate, and enter them under
   "specs and ratings".
 - The sway animation and the "sway onset" speed show a trend and are **not a prediction** for any real rig.
-- Suspension squat is drawn 2.5× larger than calculated so it is visible.
 - Nothing is saved between page loads.

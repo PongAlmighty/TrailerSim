@@ -2,7 +2,7 @@
 // Driving animation: top and side views of the rig on an endless road.
 // World x is inches ahead of the hitch point (trailer is negative); lateral y is inches left of the road centre.
 
-const LANE = 144, SQUAT_GAIN = 2.5, MPH = 17.6; // lane width (in); visual squat exaggeration; in/s per mph
+const LANE = 144, SQUAT_GAIN = 1, MPH = 17.6; // lane width (in); squat drawn to scale; in/s per mph
 const sim = {
   y: -LANE / 2, vy: 0, ay: 0, yFrom: -LANE / 2, yTo: -LANE / 2, tau: 1, lane: 0,
   psi: 0, phi: 0, sig: 0, sigd: 0, env: 0, dist: 0, v: 55, paused: false, sc: 1, hitchX: 0, hits: [],
@@ -24,6 +24,7 @@ function stepSim(dt) {
   sim.ay = 64 * (yCmd - sim.y) - 16 * sim.vy;
   sim.vy += sim.ay * dt; sim.y += sim.vy * dt;
   sim.psi = Math.atan2(sim.vy, Math.max(v, 200));
+  if (!S.trl) { sim.sig = sim.sigd = sim.env = 0; sim.phi = sim.psi; sim.dist += v * dt; return; }
 
   // sway: a damped oscillator whose damping goes negative above the onset speed,
   // with amplitude-dependent damping so it settles into a limit cycle instead of diverging
@@ -54,7 +55,7 @@ const STATUS = { ok: '#4cc38a', warn: '#f5b83d', bad: '#f2555a' };
 
 function layout(W, Htop) {
   const v = S.veh, t = S.trl;
-  const front = R.OH + v.wb + v.fOH, back = t.tongue + t.bed;
+  const front = R.OH + v.wb + v.fOH, back = t ? t.tongue + t.bed : v.rOH - R.OH;
   sim.sc = Math.min(W * 0.86 / (front + back), Htop / (2 * LANE + 56));
   sim.hitchX = W / 2 + (back - front) / 2 * sim.sc;
 }
@@ -99,7 +100,7 @@ function drawTop(cv) {
   const hx = ax - R.OH * sc * Math.cos(psi), hy = ay + R.OH * sc * Math.sin(psi);
   const drawCar = () => { c.save(); c.translate(ax, ay); c.rotate(-psi); c.scale(sc, sc); topCar(c, v); c.restore(); };
   const drawTrl = () => { c.save(); c.translate(hx, hy); c.rotate(-th); c.scale(sc, sc); topTrailer(c, t); c.restore(); };
-  if (R.inBed) { drawCar(); drawTrl(); } else { drawTrl(); drawCar(); }
+  if (!t) drawCar(); else if (R.inBed) { drawCar(); drawTrl(); } else { drawTrl(); drawCar(); }
 
   if (sim.env > 0.05) {
     c.fillStyle = STATUS.bad; c.beginPath(); c.roundRect(W - 128, 8, 120, 22, 11); c.fill();
@@ -220,24 +221,26 @@ function drawSide(cv) {
 
   const car = () => sideCar(c, v, cx, cz, sx, sy, sc, xFA, spin);
   const trl = () => sideTrailer(c, t, tx, tz, sy, sc, spin);
-  if (R.inBed) { car(); trl(); } else { trl(); car(); }
+  if (!t) car(); else if (R.inBed) { car(); trl(); } else { trl(); car(); }
 
   // centre-of-balance markers
-  cgMark(c, tx(R.cb), tz(R.cb, t.deckH + 16), 6);
+  if (t) cgMark(c, tx(R.cb), tz(R.cb, t.deckH + 16), 6);
   const vcg = R.vItems.reduce((s, i) => s + i.w * i.d, 0) / R.Wv;
   cgMark(c, cx(vcg), cz(vcg, 26), 6);
 
   // coupler load callout
   c.font = '600 11px system-ui'; c.textAlign = 'center';
-  const col = STATUS[R.tongueStatus], hx = sx(0), topY = 34;
-  c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.5;
-  const tipY = sy(hitchZ) - 6;
-  c.beginPath(); c.moveTo(hx, topY + 4); c.lineTo(hx, tipY); c.stroke();
-  c.beginPath(); c.moveTo(hx - 4, tipY - 6); c.lineTo(hx + 4, tipY - 6); c.lineTo(hx, tipY); c.fill();
-  const lbl = (R.inBed ? 'Pin ' : 'Tongue ') + fW(R.TW) + ' · ' + (R.tonguePct * 100).toFixed(1) + '%';
-  const tw = c.measureText(lbl).width + 12;
-  c.fillStyle = 'rgba(18,22,28,.82)'; c.beginPath(); c.roundRect(hx - tw / 2, topY - 13, tw, 18, 9); c.fill();
-  c.fillStyle = col; c.fillText(lbl, hx, topY);
+  if (t) {
+    const col = STATUS[R.tongueStatus], hx = sx(0), topY = 34;
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 1.5;
+    const tipY = sy(hitchZ) - 6;
+    c.beginPath(); c.moveTo(hx, topY + 4); c.lineTo(hx, tipY); c.stroke();
+    c.beginPath(); c.moveTo(hx - 4, tipY - 6); c.lineTo(hx + 4, tipY - 6); c.lineTo(hx, tipY); c.fill();
+    const lbl = (R.inBed ? 'Pin ' : 'Tongue ') + fW(R.TW) + ' · ' + (R.tonguePct * 100).toFixed(1) + '%';
+    const tw = c.measureText(lbl).width + 12;
+    c.fillStyle = 'rgba(18,22,28,.82)'; c.beginPath(); c.roundRect(hx - tw / 2, topY - 13, tw, 18, 9); c.fill();
+    c.fillStyle = col; c.fillText(lbl, hx, topY);
+  }
 
   // axle loads
   const axle = (x, name, w, lim) => {
@@ -250,7 +253,7 @@ function drawSide(cv) {
   };
   axle(clamp(sx(xFA), 40, W - 40), 'Front axle', R.F, v.gawrF);
   axle(sx(R.OH), 'Rear axle', R.R, v.gawrR);
-  axle(clamp(sx(-R.A), 40, W - 40), t.axles > 1 ? 'Trailer axles' : 'Trailer axle', R.tAxle, t.gawr);
+  if (t) axle(clamp(sx(-R.A), 40, W - 40), t.axles > 1 ? 'Trailer axles' : 'Trailer axle', R.tAxle, t.gawr);
 }
 
 function wheelSide(c, x, y, r, ang) {

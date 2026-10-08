@@ -65,26 +65,27 @@ const BED_HITCH_FWD = 2; // in-bed hitches sit just ahead of the rear axle
 
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
+// S.trl is null when no trailer is hitched: every trailer term is then zero.
 function compute(S) {
   const v = S.veh, t = S.trl, hd = HITCHES[S.hitch];
-  const inBed = S.hitch === 'gooseneck' || S.hitch === 'fifth';
+  const inBed = !!t && (S.hitch === 'gooseneck' || S.hitch === 'fifth');
   const OH = inBed ? -BED_HITCH_FWD : v.ballOH; // rear axle back to hitch point
-  const A = t.tongue + t.axlePct * t.bed;       // coupler back to axle-group centre
+  const A = t ? t.tongue + t.axlePct * t.bed : 0; // coupler back to axle-group centre
 
   // Trailer centre of balance, RDL at the coupler
-  const tItems = [{ name: 'Empty trailer', w: t.empty, d: t.tongue + t.cgPct * t.bed }];
-  S.cargo.forEach((c, i) => tItems.push({ name: c.name || 'Cargo ' + (i + 1), w: c.w, d: t.tongue + c.pos * t.bed }));
+  const tItems = t ? [{ name: 'Empty trailer', w: t.empty, d: t.tongue + t.cgPct * t.bed }] : [];
+  if (t) S.cargo.forEach((c, i) => tItems.push({ name: c.name || 'Cargo ' + (i + 1), w: c.w, d: t.tongue + c.pos * t.bed }));
   const Wt = tItems.reduce((s, i) => s + i.w, 0);
   const Mt = tItems.reduce((s, i) => s + i.w * i.d, 0);
-  const cb = Mt / Wt;
-  const TW = Wt * (A - cb) / A; // static tongue / pin weight
-  const tonguePct = TW / Wt;
+  const cb = t ? Mt / Wt : 0;
+  const TW = t ? Wt * (A - cb) / A : 0; // static tongue / pin weight
+  const tonguePct = t ? TW / Wt : 0;
 
   // Weight distribution hitch: a moment M across the coupling restores a fraction of the
   // load the tongue weight took off the front axle, and shifts some load to the trailer axles.
-  const restore = S.hitch === 'wdh' ? S.wdRestore : 0;
-  const M = restore * TW * OH / (1 + OH / A);
-  const V = TW - M / A;        // vertical load at the ball
+  const restore = t && S.hitch === 'wdh' ? S.wdRestore : 0;
+  const M = t ? restore * TW * OH / (1 + OH / A) : 0;
+  const V = t ? TW - M / A : 0; // vertical load at the ball
   const tAxle = Wt - V;
 
   // Tow vehicle, distances measured back from the front axle
@@ -106,15 +107,15 @@ function compute(S) {
   const rigAxles = [
     { name: 'Front axle', w: F, d: v.fOH },
     { name: 'Rear axle', w: R, d: v.fOH + v.wb },
-    { name: 'Trailer axles', w: tAxle, d: v.fOH + v.wb + OH + A },
   ];
+  if (t) rigAxles.push({ name: 'Trailer axles', w: tAxle, d: v.fOH + v.wb + OH + A });
   const rigCB = rigAxles.reduce((s, a) => s + a.w * a.d, 0) / GCW;
 
   // Suspension deflection relative to curb height (in)
   const squatF = (F - v.curb * v.ff) / (v.gawrF / 5);
   const squatR = (R - v.curb * (1 - v.ff)) / (v.gawrR / 5);
 
-  const sway = swayModel(S, { Wt, Wv, A, cb, tonguePct, tItems });
+  const sway = t ? swayModel(S, { Wt, Wv, A, cb, tonguePct, tItems }) : { vcrit: Infinity, omega: 0, massRatio: 0 };
 
   // Checks
   const checks = [], issues = [];
@@ -134,17 +135,19 @@ function compute(S) {
   else if (tonguePct < lo) { ts = 'warn'; tmsg = tw + ' is a little light. Move some weight forward.'; }
   else if (tonguePct > hi + 0.03) { ts = 'bad'; tmsg = tw + ' is far too heavy. Move weight back toward the axles.'; }
   else if (tonguePct > hi) { ts = 'warn'; tmsg = tw + ' is a little heavy. Move some weight back.'; }
-  flag(ts, tmsg);
+  if (t) flag(ts, tmsg);
 
   const towLimit = inBed ? v.tow5 : v.tow;
-  add('Trailer weight vs. tow rating', Wt, towLimit, 'Trailer weighs more than the vehicle is rated to tow.');
-  if (!inBed) add('Tongue weight vs. hitch rating', Math.max(TW, 0), v.tongueMax, 'Tongue weight exceeds the hitch rating.');
+  if (t) add('Trailer weight vs. tow rating', Wt, towLimit, 'Trailer weighs more than the vehicle is rated to tow.');
+  if (t && !inBed) add('Tongue weight vs. hitch rating', Math.max(TW, 0), v.tongueMax, 'Tongue weight exceeds the hitch rating.');
   add('Vehicle gross weight vs. GVWR', GVW, v.gvwr, 'Tow vehicle is over its GVWR (payload exceeded).', true);
   add('Front axle vs. GAWR', F, v.gawrF, 'Front axle is over its rating.');
   add('Rear axle vs. GAWR', R, v.gawrR, 'Rear axle is over its rating.');
-  add('Combined weight vs. GCWR', GCW, v.gcwr, 'Combined weight exceeds the GCWR.');
-  add('Trailer gross vs. trailer GVWR', Wt, t.gvwr, 'Trailer is loaded beyond its GVWR.');
-  add('Trailer axles vs. axle rating', tAxle, t.gawr, 'Trailer axles are over their rating.');
+  if (t) add('Combined weight vs. GCWR', GCW, v.gcwr, 'Combined weight exceeds the GCWR.');
+  if (t) {
+    add('Trailer gross vs. trailer GVWR', Wt, t.gvwr, 'Trailer is loaded beyond its GVWR.');
+    add('Trailer axles vs. axle rating', tAxle, t.gawr, 'Trailer axles are over their rating.');
+  }
 
   const frontLoss = (F0 - F) / F0; // share of front axle load removed by the trailer
   if (frontLoss > 0.2) issues.push({ status: 'bad', msg: 'The trailer lifts ' + Math.round(frontLoss * 100) + '% of the load off the front axle, so steering and braking suffer.' });
@@ -153,7 +156,7 @@ function compute(S) {
   if (S.speed > sway.vcrit) issues.push({ status: 'bad', msg: 'Current speed is above the estimated sway onset speed.' });
   issues.sort((a, b) => (a.status === 'bad' ? 0 : 1) - (b.status === 'bad' ? 0 : 1));
 
-  return { inBed, OH, A, tItems, Wt, Mt, cb, TW, tonguePct, tongueStatus: ts, range: hd.range, restore, M, V, tAxle,
+  return { inBed, OH, A, tItems, Wt, Mt, cb, TW, tonguePct, tongueStatus: t ? ts : 'ok', range: hd.range, restore, M, V, tAxle,
     vItems, Wv, F0, R0, F, R, GVW, GCW, rigAxles, rigCB, squatF, squatR, frontLoss, sway, checks, issues, hitchH: hd.h };
 }
 

@@ -73,8 +73,10 @@ function buildTrailer() {
   const box = $('trl'); box.textContent = ''; refreshers.trl = [];
   const t = S.trl, canBed = S.veh.tow5 > 0;
   const sel = el('select'); sel.setAttribute('aria-label', 'Trailer type');
-  TRAILERS.forEach(x => { const o = new Option(x.name + (x.coupler !== 'ball' && !canBed ? ' (needs a full-size pickup)' : ''), x.id, false, x.id === t.id); o.disabled = x.coupler !== 'ball' && !canBed; sel.append(o); });
+  sel.append(new Option('No trailer', '', false, !t));
+  TRAILERS.forEach(x => { const o = new Option(x.name + (x.coupler !== 'ball' && !canBed ? ' (needs a full-size pickup)' : ''), x.id, false, !!t && x.id === t.id); o.disabled = x.coupler !== 'ball' && !canBed; sel.append(o); });
   sel.addEventListener('change', () => { setTrailer(sel.value); buildTrailer(); buildCargo(); update(); });
+  if (!t) { box.append(sel); return; }
   const hs = el('select'); hs.setAttribute('aria-label', 'Hitch type'); hs.style.marginTop = '8px';
   (t.coupler === 'ball' ? ['receiver', 'wdh', 'pintle'] : [t.coupler]).forEach(h => hs.append(new Option(HITCHES[h].name, h, false, h === S.hitch)));
   hs.addEventListener('change', () => { S.hitch = hs.value; buildTrailer(); update(); });
@@ -94,6 +96,7 @@ function buildTrailer() {
 
 function buildCargo() {
   const box = $('cargo'); box.textContent = ''; refreshers.cargo = [];
+  if (!S.trl) { box.append(el('p', 'hint', 'Choose a trailer to load cargo into it.')); return; }
   S.cargo.forEach((k, i) => {
     const it = el('div', 'item'), head = el('div', 'item-head'), name = el('input'), rm = el('button', null, '✕');
     name.type = 'text'; name.value = k.name; name.setAttribute('aria-label', 'Cargo name');
@@ -117,6 +120,7 @@ function setVehicle(id) {
 }
 function setTrailer(id) {
   const p = TRAILERS.find(t => t.id === id);
+  if (!p) { S.trl = null; S.cargo = []; S.hitch = 'receiver'; return; } // no trailer
   S.trl = { ...p }; S.cargo = p.cargo.map(c => ({ ...c }));
   S.hitch = p.coupler === 'ball' ? (HITCHES[S.hitch] && !['gooseneck', 'fifth'].includes(S.hitch) ? S.hitch : 'receiver') : p.coupler;
 }
@@ -132,13 +136,14 @@ function update(sync) {
 
   const [lo, hi] = R.range, pc = x => clamp(x / 0.30, 0, 1) * 100 + '%';
   $('tw-name').textContent = R.inBed ? 'Pin weight' : 'Tongue weight';
-  $('tw-val').textContent = fW(R.TW) + ' · ' + (R.tonguePct * 100).toFixed(1) + '%';
-  $('tw-val').className = R.tongueStatus;
+  $('tw-val').textContent = S.trl ? fW(R.TW) + ' · ' + (R.tonguePct * 100).toFixed(1) + '%' : 'no trailer';
+  $('tw-val').className = S.trl ? R.tongueStatus : '';
+  $('tw-mark').hidden = $('tw-band').hidden = !S.trl;
   $('tw-band').style.left = pc(lo); $('tw-band').style.width = (hi - lo) / 0.30 * 100 + '%';
   $('tw-mark').style.left = pc(R.tonguePct); $('tw-mark').style.background = STATUS[R.tongueStatus];
-  $('tw-target').textContent = 'target ' + lo * 100 + '–' + hi * 100 + '%';
-  $('k-wt').textContent = fW(R.Wt); $('k-gvw').textContent = fW(R.GVW); $('k-gcw').textContent = fW(R.GCW);
-  $('k-sway').textContent = R.sway.vcrit > 99 ? 'above ' + fV(99) : '≈ ' + fV(R.sway.vcrit);
+  $('tw-target').textContent = S.trl ? 'target ' + lo * 100 + '–' + hi * 100 + '%' : '';
+  $('k-wt').textContent = S.trl ? fW(R.Wt) : '—'; $('k-gvw').textContent = fW(R.GVW); $('k-gcw').textContent = fW(R.GCW);
+  $('k-sway').textContent = !S.trl ? '—' : R.sway.vcrit > 99 ? 'above ' + fV(99) : '≈ ' + fV(R.sway.vcrit);
   $('k-sway').style.color = S.speed > R.sway.vcrit ? STATUS.bad : S.speed > R.sway.vcrit * 0.85 ? STATUS.warn : '';
 
   const iss = $('issues'); iss.textContent = '';
@@ -162,6 +167,14 @@ function renderMath() {
   const head = `<tr><th>Item</th><th>W</th><th>D from RDL</th><th>Moment (${wu}·${lu})</th></tr>`;
   const cbL = roundCB(R.cb * uf('in')[0]).toLocaleString('en-US') + ' ' + lu;
   const rigM = R.rigAxles.reduce((s, a) => s + a.w * a.d, 0);
+  if (!S.trl) {
+    $('math').innerHTML = `
+  <h3>Vehicle axle loads <small class="hint">(no trailer)</small></h3>
+  <table>${head}${rows(R.vItems)}<tr class="total"><td>Total</td><td>${fW(R.Wv)}</td><td></td><td>${fM(R.R0 * v.wb)}</td></tr></table>
+  <div class="eq">rear = Σ(D × W) ÷ wheelbase = ${fM(R.R0 * v.wb)} ÷ ${fL(v.wb)} = <b>${fW(R.R)}</b></div>
+  <div class="eq">front = ${fW(R.Wv)} − ${fW(R.R)} = <b>${fW(R.F)}</b> <small class="hint">(D measured back from the front axle)</small></div>`;
+    return;
+  }
   let h = `
   <h3>1. Trailer centre of balance <small class="hint">(RDL = coupler)</small></h3>
   <table>${head}${rows(R.tItems)}<tr class="total"><td>Total</td><td>${fW(R.Wt)}</td><td></td><td>${fM(R.Mt)}</td></tr></table>
