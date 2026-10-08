@@ -37,6 +37,10 @@ const TRAILERS = [
   // Empty weight and GVWR are U-Haul's figures as recalled (850 / 2,500 lb); axle rating, axle position and tongue length are estimates.
   { id: 'uhaul48', name: 'U-Haul 4×8 enclosed cargo', coupler: 'ball', style: 'box', empty: 850, bed: 96, tongue: 42, axles: 1, axlePct: 0.60, cgPct: 0.48, width: 54, deckH: 16, boxH: 54, tire: 22,
     gvwr: 2500, gawr: 2500, cargo: [{ name: 'Boxes', w: 600, pos: 0.45 }] },
+  // Empty weight, GVWR, axle rating and 87 lb empty tongue weight from makemytrailer.com's Diamond Cargo 4×6 spec table;
+  // tongue length, axle position and outside dimensions are estimates (cgPct chosen to reproduce the 87 lb tongue weight).
+  { id: 'diamond46', name: 'Diamond Cargo 4×6 enclosed', coupler: 'ball', style: 'box', empty: 700, bed: 72, tongue: 48, axles: 1, axlePct: 0.60, cgPct: 0.4425, width: 54, deckH: 16, boxH: 52, tire: 24,
+    gvwr: 2000, gawr: 2000, cargo: [{ name: 'Boxes', w: 400, pos: 0.45 }] },
   { id: 'cargo14', name: 'Enclosed cargo 7×14', coupler: 'ball', style: 'box', empty: 2400, bed: 168, tongue: 48, axles: 2, axlePct: 0.60, cgPct: 0.48, width: 84, deckH: 20, boxH: 80, tire: 27,
     gvwr: 7000, gawr: 7000, cargo: [{ name: 'Tool chests', w: 1200, pos: 0.35 }, { name: 'Motorcycle', w: 600, pos: 0.62 }] },
   { id: 'travel', name: 'Travel trailer 24 ft', coupler: 'ball', style: 'camper', empty: 4900, bed: 270, tongue: 44, axles: 2, axlePct: 0.57, cgPct: 0.48, width: 96, deckH: 24, boxH: 96, tire: 28,
