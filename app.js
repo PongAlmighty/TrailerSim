@@ -137,11 +137,13 @@ function update(sync) {
   const top = R.issues[0], hl = $('headline');
   hl.textContent = top ? top.msg : 'Load is balanced and within every rating.';
   hl.className = 'headline ' + (top ? top.status : 'ok');
+  $('m-headline').textContent = hl.textContent; $('m-headline').className = top ? top.status : 'ok'; // phone overlay on the top view
 
   const [lo, hi] = R.range, pc = x => clamp(x / 0.30, 0, 1) * 100 + '%';
   $('tw-name').textContent = R.inBed ? 'Pin weight' : 'Tongue weight';
   $('tw-val').textContent = S.trl ? fW(R.TW) + ' · ' + (R.tonguePct * 100).toFixed(1) + '%' : 'no trailer';
   $('tw-val').className = S.trl ? R.tongueStatus : '';
+  $('m-tw').textContent = S.trl ? (R.inBed ? 'pin ' : 'tongue ') + (R.tonguePct * 100).toFixed(1) + '%' : ''; $('m-tw').className = R.tongueStatus;
   $('tw-mark').hidden = $('tw-band').hidden = !S.trl;
   $('tw-band').style.left = pc(lo); $('tw-band').style.width = (hi - lo) / 0.30 * 100 + '%';
   $('tw-mark').style.left = pc(R.tonguePct); $('tw-mark').style.background = STATUS[R.tongueStatus];
@@ -243,6 +245,17 @@ $('lane-r').addEventListener('click', () => lane(0));
 $('gust').addEventListener('click', gust);
 $('zoom').addEventListener('click', () => { sim.zoom = !sim.zoom; $('zoom').setAttribute('aria-pressed', sim.zoom); $('zoom').textContent = sim.zoom ? 'Show whole rig' : 'Zoom to vehicle'; });
 $('pause').addEventListener('click', () => { sim.paused = !sim.paused; $('pause').textContent = sim.paused ? 'Resume' : 'Pause'; });
+// phones: one section at a time under the pinned top view; on wide screens every panel is shown and this is inert
+const showTab = id => {
+  document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === id));
+  const pin = document.querySelector('.pin'); if (scrollY > pin.offsetTop) scrollTo(0, pin.offsetTop);
+};
+document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+// phones: lane / gust / pause buttons live on the pinned top view so they stay reachable from every tab
+const phone = matchMedia('(max-width: 720px)');
+const placeDriveButtons = () => (phone.matches ? $('top-view') : document.querySelector('.drive')).append($('lane-ctl'));
+phone.addEventListener('change', placeDriveButtons); placeDriveButtons();
 addEventListener('keydown', e => {
   if (/INPUT|SELECT|TEXTAREA|BUTTON/.test(e.target.tagName)) return;
   if (e.key === 'ArrowUp') lane(1); else if (e.key === 'ArrowDown') lane(0);

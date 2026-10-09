@@ -385,7 +385,7 @@ function startSim(top, side) {
   const frame = now => {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!sim.paused) { stepSim(dt / 2); stepSim(dt / 2); }
-    drawTop(top); drawSide(side);
+    drawTop(top); if (side.clientWidth) drawSide(side); // the side view is hidden on phones when another tab is open
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
