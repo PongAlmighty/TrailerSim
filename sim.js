@@ -7,6 +7,7 @@ const sim = {
   y: -LANE / 2, vy: 0, ay: 0, yFrom: -LANE / 2, yTo: -LANE / 2, tau: 1, lane: 0,
   psi: 0, phi: 0, sig: 0, sigd: 0, env: 0, dist: 0, v: 55, paused: false, sc: 1, hitchX: 0, hits: [],
   zoom: false, sideSc: 1, sideX: 0, // side view framing; zoom fills it with the tow vehicle
+  topHits: [], // draggable cargo boxes in the top view (sim.hits is the side view's)
 };
 
 function setLane(n) {
@@ -110,6 +111,7 @@ function drawTop(cv) {
   const hx = ax - R.OH * sc * Math.cos(psi), hy = ay + R.OH * sc * Math.sin(psi);
   const drawCar = () => { c.save(); c.translate(ax, ay); c.rotate(-psi); c.scale(sc, sc); topCar(c, v); c.restore(); };
   const drawTrl = () => { c.save(); c.translate(hx, hy); c.rotate(-th); c.scale(sc, sc); topTrailer(c, t); c.restore(); };
+  sim.topHits = [];
   if (!t) drawCar(); else if (R.inBed) { drawCar(); drawTrl(); } else { drawTrl(); drawCar(); }
 
   if (sim.env > 0.05) {
@@ -147,6 +149,7 @@ function topCar(c, v) {
     const u = v.cargoMin + S.load.cargoPos * (v.cargoMax - v.cargoMin), [len] = cargoSize({ w: S.load.cargo }, 80);
     const l = Math.min(len, 40);
     cargoBox(c, X(u) - l / 2, -l * 0.45, l, l * 0.9, v.body !== 'pickup' || S.load.topper > 0, S.load.cargo);
+    sim.topHits.push({ inv: frameInverse(c), sc: sim.sc, x: X(u) - l / 2, y: -l * 0.45, w: l, h: l * 0.9, kind: 'veh', toS: lx => -lx - R.OH });
   }
 }
 
@@ -184,13 +187,16 @@ function topTrailer(c, t) {
     c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 1.5; c.strokeRect(x0 - L + 4, -hw + 4, L - 8, 2 * hw - 8);
   }
   if (t.coupler === 'gooseneck') { c.fillStyle = '#2b2f35'; c.fillRect(x0, -8, t.tongue + 6, 16); }
-  S.cargo.forEach(k => {
+  S.cargo.forEach((k, i) => {
     const [len] = cargoSize(k, L), w = Math.min(len * 0.6, hw * 1.5);
     cargoBox(c, x0 - k.pos * L - len / 2, -w / 2, len, w, !open, k.w);
+    sim.topHits.push({ inv: frameInverse(c), sc: sim.sc, x: x0 - k.pos * L - len / 2, y: -w / 2, w: len, h: w, kind: 'trl', i, toS: lx => -lx });
   });
   // centre of balance marker
   cgMark(c, -R.cb, 0, 7);
 }
+// maps CSS-pixel canvas coordinates into the frame currently set on the context (fit() put device-pixel scaling in it)
+const frameInverse = c => c.getTransform().inverse().scale(window.devicePixelRatio || 1);
 function cgMark(c, x, y, r) {
   c.fillStyle = '#fff'; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill();
   c.fillStyle = '#111'; c.beginPath(); c.moveTo(x, y); c.arc(x, y, r, 0, Math.PI / 2); c.fill();
@@ -315,7 +321,7 @@ function sideCar(c, v, cx, cz, sx, sy, sc, xFA, spin) {
     const l = Math.min(len, 40), hh = Math.min(h, 24), base = sh.z0 + (pk ? 22 : 14);
     const x = cx(u + l / 2), y = cz(u, base + hh);
     cargoBox(c, x, y, l * sc, hh * sc, !pk || cap, S.load.cargo);
-    sim.hits.push({ x, y, w: l * sc, h: hh * sc, kind: 'veh' });
+    sim.hits.push({ sc: 1, x, y, w: l * sc, h: hh * sc, kind: 'veh', toS: px => (sim.sideX - px) / sim.sideSc });
   }
   // wheels
   const r = v.tire / 2;
@@ -368,7 +374,7 @@ function sideTrailer(c, t, tx, tz, sy, sc, spin) {
     const x = tx(s + len / 2), y = tz(s, base + h);
     cargoBox(c, x, y, len * sc, h * sc, !open, k.w);
     if (len * sc > 44) { c.fillStyle = open ? '#1a1405' : '#5b4410'; c.font = '600 10px system-ui'; c.textAlign = 'center'; c.fillText(fW(k.w), x + len * sc / 2, y + h * sc / 2 + 4); }
-    sim.hits.push({ x, y, w: len * sc, h: h * sc, kind: 'trl', i });
+    sim.hits.push({ sc: 1, x, y, w: len * sc, h: h * sc, kind: 'trl', i, toS: px => (sim.sideX - px) / sim.sideSc });
   });
 
   const r = t.tire / 2, n = t.axles;
@@ -390,23 +396,44 @@ function startSim(top, side) {
   };
   requestAnimationFrame(frame);
 
-  // drag cargo along the trailer bed / vehicle cargo area
+  dragCargo(side, () => sim.hits); dragCargo(top, () => sim.topHits);
+}
+
+// Drag cargo along the trailer bed or the vehicle's cargo area, in either view.
+// A hit box is {x, y, w, h} in its own frame (inv maps canvas CSS px into that frame; sc is px per frame unit),
+// and toS turns a frame x into inches behind the hitch. Fingers get a much larger target than a mouse.
+function dragCargo(cv, hits) {
   let drag = null;
-  const pos = e => { const r = side.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-  const hit = (x, y) => sim.hits.slice().reverse().find(h => x >= h.x - 4 && x <= h.x + h.w + 4 && y >= h.y - 4 && y <= h.y + h.h + 4);
-  side.addEventListener('pointerdown', e => {
-    const [x, y] = pos(e), h = hit(x, y);
-    if (h) { drag = { h, off: x - (h.x + h.w / 2) }; try { side.setPointerCapture(e.pointerId); } catch (_) { /* pointer already gone */ } e.preventDefault(); }
+  const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  const local = (h, x, y) => { if (!h.inv) return [x, y]; const p = h.inv.transformPoint(new DOMPoint(x, y)); return [p.x, p.y]; };
+  const hit = (x, y, pad) => { // nearest box whose padded rectangle contains the point
+    let best = null, bd = Infinity;
+    for (const h of hits()) {
+      const [lx, ly] = local(h, x, y), p = pad / h.sc;
+      if (lx < h.x - p || lx > h.x + h.w + p || ly < h.y - p || ly > h.y + h.h + p) continue;
+      const d = Math.hypot(lx - h.x - h.w / 2, ly - h.y - h.h / 2) * h.sc;
+      if (d < bd) { bd = d; best = h; }
+    }
+    return best;
+  };
+  const same = h => hits().find(k => k.kind === h.kind && k.i === h.i); // this frame's copy of the box being dragged
+  cv.addEventListener('pointerdown', e => {
+    const [x, y] = pos(e), h = hit(x, y, e.pointerType === 'mouse' ? 4 : 22);
+    if (!h) return;
+    drag = { kind: h.kind, i: h.i, off: local(h, x, y)[0] - (h.x + h.w / 2) };
+    try { cv.setPointerCapture(e.pointerId); } catch (_) { /* pointer already gone */ }
+    e.preventDefault();
   });
-  side.addEventListener('pointermove', e => {
+  cv.addEventListener('pointermove', e => {
     const [x, y] = pos(e);
-    if (!drag) { side.style.cursor = hit(x, y) ? 'grab' : 'default'; return; }
-    side.style.cursor = 'grabbing';
-    const world = (sim.sideX - (x - drag.off)) / sim.sideSc; // inches behind the hitch
-    if (drag.h.kind === 'trl') S.cargo[drag.h.i].pos = clamp((world - S.trl.tongue) / S.trl.bed, 0.03, 0.97);
-    else { const v = S.veh, u = world + R.OH + v.wb; S.load.cargoPos = clamp((u - v.cargoMin) / (v.cargoMax - v.cargoMin), 0, 1); }
+    if (!drag) { if (e.pointerType === 'mouse') cv.style.cursor = hit(x, y, 4) ? 'grab' : 'default'; return; }
+    const h = same(drag); if (!h) return;
+    cv.style.cursor = 'grabbing';
+    const s = h.toS(local(h, x, y)[0] - drag.off); // inches behind the hitch
+    if (h.kind === 'trl') S.cargo[h.i].pos = clamp((s - S.trl.tongue) / S.trl.bed, 0.03, 0.97);
+    else { const v = S.veh, u = s + R.OH + v.wb; S.load.cargoPos = clamp((u - v.cargoMin) / (v.cargoMax - v.cargoMin), 0, 1); }
     update(true);
   });
-  const end = () => { drag = null; };
-  side.addEventListener('pointerup', end); side.addEventListener('pointercancel', end);
+  const end = () => { drag = null; cv.style.cursor = 'default'; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
 }

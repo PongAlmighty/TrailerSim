@@ -30,7 +30,7 @@ The three calculation examples from the page are built into the worksheet at the
 - **Hitch types.** Receiver (bumper pull), weight distribution, pintle, gooseneck and fifth-wheel. The weight
   distribution hitch has a slider for how much front axle load it restores.
 - **Cargo where you want it.** Occupants, cargo and (on pickups) a bed topper in the vehicle; any number of named cargo items in the trailer,
-  each with a weight and a position. Drag the boxes in the side view to move them.
+  each with a weight and a position. Drag the boxes in either view to move them, with a mouse or a finger.
 - **Driving animation.** Top and side views of the rig on an endless road. Set the speed, change lanes, hit
   the trailer with a crosswind gust, and see suspension squat, axle loads and the centre-of-balance markers update.
 - **Sway.** When the load is unstable the trailer starts to sway, worse with speed. The sway model is an
