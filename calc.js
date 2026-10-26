@@ -17,9 +17,16 @@ const VEHICLES = [
   { id: 'fullsuv', name: 'Full-size SUV', body: 'suv', color: '#2f3640', curb: 5700, ff: 0.52, wb: 121, fOH: 39, rOH: 50, ballOH: 54, width: 81, height: 76, tire: 33,
     gvwr: 7500, gawrF: 3600, gawrR: 4300, tow: 8200, tow5: 0, tongueMax: 820, gcwr: 14500, seatF: 62, seatR: 100, cargoMin: 122, cargoMax: 160 },
   // Curb, GVWR, GCWR and tow rating supplied by the owner (Hybrid AWD with 4K tow package). GCWR 8,315, 4,000 lb trailer and
-  // 400 lb tongue load match Ford's 2025 towing guide; axle ratings and weight split are estimates.
-  { id: 'maverick', name: 'Ford Maverick Hybrid (4K tow)', body: 'pickup', color: '#3f6fa8', curb: 3800, ff: 0.58, wb: 121, fOH: 36, rOH: 43, ballOH: 47, width: 73, height: 69, tire: 28,
-    gvwr: 5320, gawrF: 2850, gawrR: 2700, tow: 4000, tow5: 0, tongueMax: 400, gcwr: 8315, seatF: 58, seatR: 92, cargoMin: 114, cargoMax: 158, bedStart: 108 },
+  // 400 lb tongue load match Ford's 2025 towing guide. Without the package: 2,000 lb tow and 200 lb tongue; the 6,315 GCWR is
+  // from mavericktruckmods.com (other sites give 5,800 to 6,045). Axle ratings and weight split are estimates.
+  { id: 'maverick', name: 'Ford Maverick Hybrid AWD', body: 'pickup', color: '#3f6fa8', curb: 3800, ff: 0.58, wb: 121, fOH: 36, rOH: 43, ballOH: 47, width: 73, height: 69, tire: 28,
+    gvwr: 5320, gawrF: 2850, gawrR: 2700, tow: 2000, tow5: 0, tongueMax: 200, gcwr: 6315, seatF: 58, seatR: 92, cargoMin: 114, cargoMax: 158, bedStart: 108,
+    towPkg: { name: '4K Tow Package', on: true, tow: 4000, tongueMax: 400, gcwr: 8315 } },
+  // 4.0 V6 4x4 automatic, 5 ft bed. Curb, GVWR, GCWR, tow, tongue, dimensions and 265/65R17 tires from Toyota's 2014 Tacoma brochure.
+  // TRD Sport does not include the optional V6 Tow Package; towPkg holds the ratings it brings. Axle ratings and weight split are estimates.
+  { id: 'tacoma14', name: '2014 Toyota Tacoma Double Cab TRD Sport', body: 'pickup', color: '#a8463a', curb: 4220, ff: 0.57, wb: 127.4, fOH: 34, rOH: 47, ballOH: 52, width: 75, height: 70, tire: 31,
+    gvwr: 5500, gawrF: 2780, gawrR: 3200, tow: 3500, tow5: 0, tongueMax: 350, gcwr: 8100, seatF: 60, seatR: 90, cargoMin: 114, cargoMax: 168, bedStart: 110,
+    towPkg: { name: 'V6 Tow Package', tow: 6400, tongueMax: 640, gcwr: 11100 } },
   { id: 'midpickup', name: 'Mid-size pickup', body: 'pickup', color: '#d9822b', curb: 4500, ff: 0.56, wb: 128, fOH: 37, rOH: 47, ballOH: 52, width: 75, height: 71, tire: 31,
     gvwr: 6100, gawrF: 3300, gawrR: 3500, tow: 6500, tow5: 0, tongueMax: 650, gcwr: 12000, seatF: 62, seatR: 92, cargoMin: 114, cargoMax: 165, bedStart: 106 },
   { id: 'halfton', name: 'Half-ton pickup', body: 'pickup', color: '#b7c0cc', curb: 5200, ff: 0.57, wb: 145, fOH: 38, rOH: 49, ballOH: 54, width: 80, height: 77, tire: 33,

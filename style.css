@@ -68,6 +68,8 @@ summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 .ctl-head label { flex: 1; min-width: 0; }
 .ctl-head input { width: 86px; text-align: right; padding: 2px 6px; }
 .ctl-head .unit { width: 34px; color: var(--muted); font-size: 12px; }
+.opt { display: flex; align-items: center; gap: 6px; margin-top: 8px; cursor: pointer; }
+.opt input { accent-color: var(--accent); margin: 0; }
 input[type=range] { width: 100%; margin: 4px 0 0; accent-color: var(--accent); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }

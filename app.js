@@ -49,6 +49,12 @@ function buildVehicle() {
   sel.addEventListener('change', () => { setVehicle(sel.value); buildVehicle(); buildTrailer(); buildCargo(); update(); });
   box.append(sel);
   const v = S.veh, L = S.load, g = el('div', 'grid2');
+  if (v.towPkg) { // optional factory package that raises the towing ratings
+    const lab = el('label', 'opt'), cb = el('input');
+    cb.type = 'checkbox'; cb.checked = !!v.towPkgOn;
+    cb.addEventListener('change', () => { setTowPkg(cb.checked); buildVehicle(); update(); });
+    lab.append(cb, ' ' + v.towPkg.name); box.append(lab);
+  }
   const c = (p, o, k, label, unit, min, max, step) => ctl(p, 'veh', { label, unit, min, max, step, ...prop(o, k) });
   c(box, v, 'curb', 'Vehicle weight (empty, curb)', 'lb', 2000, 12000, 50);
   box.append(g);
@@ -120,7 +126,13 @@ function buildCargo() {
 
 function setVehicle(id) {
   S.veh = { ...VEHICLES.find(v => v.id === id) };
+  if (S.veh.towPkg) setTowPkg(!!S.veh.towPkg.on); // on: the package is fitted by default
   if (S.trl && S.trl.coupler !== 'ball' && !S.veh.tow5) setTrailer('cargo14');
+}
+function setTowPkg(on) { // swaps the package's ratings in, or restores the preset's own
+  const p = VEHICLES.find(v => v.id === S.veh.id), keys = ['tow', 'tongueMax', 'gcwr'];
+  keys.forEach(k => { S.veh[k] = on ? p.towPkg[k] : p[k]; });
+  S.veh.towPkgOn = on;
 }
 function setTrailer(id) {
   const p = TRAILERS.find(t => t.id === id);
